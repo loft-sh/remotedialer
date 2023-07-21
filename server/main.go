@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"io"
@@ -139,7 +140,7 @@ func main() {
 		if len(parts) != 3 {
 			continue
 		}
-		handler.AddPeer(parts[2], parts[0], parts[1])
+		handler.AddPeer(context.Background(), parts[2], parts[0], parts[1])
 	}
 
 	router := mux.NewRouter()

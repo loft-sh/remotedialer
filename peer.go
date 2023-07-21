@@ -19,12 +19,12 @@ var (
 	ID    = "X-API-Tunnel-ID"
 )
 
-func (s *Server) AddPeer(url, id, token string) {
+func (s *Server) AddPeer(ctx context.Context, url, id, token string) {
 	if s.PeerID == "" || s.PeerToken == "" {
 		return
 	}
 
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(ctx)
 	peer := peer{
 		url:    url,
 		id:     id,
