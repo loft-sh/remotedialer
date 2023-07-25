@@ -19,7 +19,7 @@ var (
 	ID    = "X-API-Tunnel-ID"
 )
 
-func (s *Server) AddPeer(ctx context.Context, url, id, token string) {
+func (s *Server) AddPeer(ctx context.Context, url, id string) {
 	if s.PeerID == "" || s.PeerToken == "" {
 		return
 	}
@@ -28,7 +28,6 @@ func (s *Server) AddPeer(ctx context.Context, url, id, token string) {
 	peer := peer{
 		url:    url,
 		id:     id,
-		token:  token,
 		cancel: cancel,
 	}
 
@@ -60,14 +59,13 @@ func (s *Server) RemovePeer(ctx context.Context, id string) {
 }
 
 type peer struct {
-	url, id, token string
-	cancel         func()
+	url, id string
+	cancel  context.CancelFunc
 }
 
 func (p peer) equals(other peer) bool {
 	return p.url == other.url &&
-		p.id == other.id &&
-		p.token == other.token
+		p.id == other.id
 }
 
 func (p *peer) start(ctx context.Context, s *Server) {
@@ -85,50 +83,51 @@ func (p *peer) start(ctx context.Context, s *Server) {
 
 	logger := klog.FromContext(ctx)
 
+	logger.Info("Peer started", "id", p.id, "url", p.url)
+
 outer:
 	for {
 		select {
 		case <-ctx.Done():
 			break outer
 		default:
-		}
-
-		metrics.IncSMTotalAddPeerAttempt(p.id)
-		ws, _, err := dialer.Dial(p.url, headers)
-		if err != nil {
-			logger.Error(err, "Failed to connect to peer", "url", p.url, "id", s.PeerID)
-			time.Sleep(5 * time.Second)
-			continue
-		}
-		metrics.IncSMTotalPeerConnected(p.id)
-
-		session, err := NewClientSession(ctx, func(string, string) bool { return true }, ws)
-		if err != nil {
-			logger.Error(err, "Failed to connect to peer", "url", p.url)
-
-			time.Sleep(5 * time.Second)
-			continue
-		}
-
-		session.dialer = func(ctx context.Context, network, address string) (net.Conn, error) {
-			parts := strings.SplitN(network, "::", 2)
-			if len(parts) != 2 {
-				return nil, fmt.Errorf("invalid clientKey/proto: %s", network)
+			metrics.IncSMTotalAddPeerAttempt(p.id)
+			ws, _, err := dialer.Dial(p.url, headers)
+			if err != nil {
+				logger.Error(err, "Failed to connect to peer", "url", p.url, "id", s.PeerID)
+				time.Sleep(5 * time.Second)
+				continue
 			}
-			d := s.Dialer(parts[0])
-			return d(ctx, parts[1], address)
+			metrics.IncSMTotalPeerConnected(p.id)
+
+			session, err := NewClientSession(ctx, func(string, string) bool { return true }, ws)
+			if err != nil {
+				logger.Error(err, "Failed to connect to peer", "url", p.url)
+
+				time.Sleep(5 * time.Second)
+				continue
+			}
+
+			session.dialer = func(ctx context.Context, network, address string) (net.Conn, error) {
+				parts := strings.SplitN(network, "::", 2)
+				if len(parts) != 2 {
+					return nil, fmt.Errorf("invalid clientKey/proto: %s", network)
+				}
+				d := s.Dialer(parts[0])
+				return d(ctx, parts[1], address)
+			}
+
+			s.sessions.addListener(session)
+			_, err = session.Serve(ctx)
+			s.sessions.removeListener(session)
+			session.Close()
+
+			if err != nil {
+				logger.Error(err, "Failed to serve peer connection", "id", p.id)
+			}
+
+			ws.Close()
+			time.Sleep(5 * time.Second)
 		}
-
-		s.sessions.addListener(session)
-		_, err = session.Serve(ctx)
-		s.sessions.removeListener(session)
-		session.Close()
-
-		if err != nil {
-			logger.Error(err, "Failed to serve peer connection", "id", p.id)
-		}
-
-		ws.Close()
-		time.Sleep(5 * time.Second)
 	}
 }

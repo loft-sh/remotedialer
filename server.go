@@ -91,15 +91,8 @@ func (s *Server) auth(req *http.Request) (clientKey string, authed, peer bool, e
 	token := req.Header.Get(Token)
 	if id != "" && token != "" {
 		// peer authentication
-		s.peerLock.Lock()
-		p, ok := s.peers[id]
-		s.peerLock.Unlock()
-		if ok {
-			if s.PeerAuthorizer != nil && s.PeerAuthorizer(req, id, token) {
-				return id, true, true, nil
-			} else if p.token != "" && p.token == token {
-				return id, true, true, nil
-			}
+		if s.PeerAuthorizer != nil && s.PeerAuthorizer(req, id, token) {
+			return id, true, true, nil
 		}
 	}
 
