@@ -112,7 +112,7 @@ func main() {
 	flag.StringVar(&addr, "listen", ":8123", "Listen address")
 	flag.StringVar(&peerID, "id", "", "Peer ID")
 	flag.StringVar(&peerToken, "token", "", "Peer Token")
-	flag.StringVar(&peers, "peers", "", "Peers format id:token:url,id:token:url")
+	flag.StringVar(&peers, "peers", "", "Peers format id:url,id:url")
 	flag.BoolVar(&debug, "debug", false, "Enable debug logging")
 	flag.Parse()
 
@@ -140,7 +140,7 @@ func main() {
 		if len(parts) != 3 {
 			continue
 		}
-		handler.AddPeer(context.Background(), parts[2], parts[0], parts[1])
+		handler.AddPeer(context.Background(), parts[2], parts[0])
 	}
 
 	router := mux.NewRouter()
