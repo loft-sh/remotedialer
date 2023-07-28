@@ -31,8 +31,6 @@ func (s *Server) AddPeer(ctx context.Context, url, id string) {
 		cancel: cancel,
 	}
 
-	klog.FromContext(ctx).Info("Adding peer", "url", url, "id", id)
-
 	s.peerLock.Lock()
 	defer s.peerLock.Unlock()
 
@@ -42,6 +40,8 @@ func (s *Server) AddPeer(ctx context.Context, url, id string) {
 		}
 		p.cancel()
 	}
+
+	klog.FromContext(ctx).Info("Adding peer", "url", url, "id", id)
 
 	s.peers[id] = peer
 	go peer.start(ctx, s)
