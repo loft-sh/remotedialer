@@ -88,7 +88,7 @@ func newSession(ctx context.Context, sessionKey int64, clientKey string, conn *w
 
 func (s *Session) Serve(ctx context.Context) (int, error) {
 	for {
-		stream, err := s.session.Accept()
+		stream, err := s.session.AcceptStreamWithContext(ctx)
 		if err != nil {
 			return 400, err
 		}
