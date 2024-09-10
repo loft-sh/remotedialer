@@ -82,7 +82,6 @@ func (p *peer) start(ctx context.Context, s *Server) {
 	}
 
 	logger := klog.FromContext(ctx)
-
 	logger.Info("Peer started", "id", p.id, "url", p.url)
 
 outer:
@@ -93,6 +92,7 @@ outer:
 		default:
 		}
 
+		logger.Info("Connect to peer", "id", p.id, "url", p.url)
 		metrics.IncSMTotalAddPeerAttempt(p.id)
 		ws, _, err := dialer.Dial(p.url, headers)
 		if err != nil {
@@ -105,7 +105,6 @@ outer:
 		session, err := NewClientSession(ctx, func(string, string) bool { return true }, ws)
 		if err != nil {
 			logger.Error(err, "Failed to connect to peer", "url", p.url)
-
 			time.Sleep(5 * time.Second)
 			continue
 		}
@@ -123,12 +122,13 @@ outer:
 		_, err = session.Serve(ctx)
 		s.sessions.removeListener(session)
 		session.Close()
-
 		if err != nil {
 			logger.Error(err, "Failed to serve peer connection", "id", p.id)
 		}
 
-		ws.Close()
+		_ = ws.Close()
 		time.Sleep(5 * time.Second)
 	}
+
+	logger.Info("Peer done", "id", p.id, "url", p.url)
 }

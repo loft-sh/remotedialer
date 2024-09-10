@@ -31,9 +31,11 @@ func (c *conn) Read(b []byte) (n int, err error) {
 		switch {
 		case err != nil:
 			return 0, err
-		case messageType != websocket.BinaryMessage && messageType == websocket.CloseMessage:
-			_ = c.wsConn.Close()
-			return 0, io.EOF
+		case messageType != websocket.BinaryMessage:
+			if messageType == websocket.CloseMessage {
+				_ = c.wsConn.Close()
+				return 0, io.EOF
+			}
 		default:
 			c.currentReader = reader
 			cont, n, err := c.read(b)
