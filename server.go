@@ -56,8 +56,7 @@ func (s *Server) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	}
 
 	logger := klog.FromContext(req.Context())
-
-	logger.Info("Handling backend connection request", "clientKey", clientKey)
+	logger.Info("Handling backend connection request", "server", s.PeerID, "clientKey", clientKey)
 
 	upgrader := websocket.Upgrader{
 		HandshakeTimeout: 5 * time.Second,

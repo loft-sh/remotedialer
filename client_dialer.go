@@ -39,8 +39,8 @@ func pipe(client net.Conn, server net.Conn) {
 		if err == nil {
 			err = io.EOF
 		}
-		client.Close()
-		server.Close()
+		_ = client.Close()
+		_ = server.Close()
 		return err
 	}
 
