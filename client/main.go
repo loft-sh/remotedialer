@@ -41,7 +41,9 @@ func main() {
 
 	ctx := context.Background()
 
-	err := remotedialer.ClientConnect(ctx, addr, headers, nil, func(string, string) bool { return true }, nil)
+	err := remotedialer.ClientConnect(ctx, addr, headers, nil, func(string, string) bool { return true }, func(ctx context.Context, session *remotedialer.Session) error {
+		return nil
+	})
 
 	if err != nil {
 		klog.FromContext(ctx).Error(err, "Failed to connect to proxy")

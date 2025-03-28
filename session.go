@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/gorilla/websocket"
 	"github.com/hashicorp/yamux"
@@ -87,6 +88,26 @@ func newSession(ctx context.Context, sessionKey int64, clientKey string, conn *w
 }
 
 func (s *Session) Serve(ctx context.Context) (int, error) {
+	ctx, cancel := context.WithCancelCause(ctx)
+	defer cancel(context.Canceled)
+
+	// start pinging the underlying connection
+	go func() {
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-time.After(time.Second * 10):
+				if err := s.ping(ctx, time.Second*10); err != nil {
+					klog.FromContext(ctx).Error(err, "Failed to ping session, will close connection")
+					cancel(err)
+					return
+				}
+			}
+		}
+	}()
+
+	// start accepting streams
 	for {
 		stream, err := s.session.AcceptStreamWithContext(ctx)
 		if err != nil {
@@ -96,6 +117,23 @@ func (s *Session) Serve(ctx context.Context) (int, error) {
 		if err := s.serveMessage(ctx, stream); err != nil {
 			return 500, err
 		}
+	}
+}
+
+func (s *Session) ping(ctx context.Context, timeout time.Duration) error {
+	ping := make(chan error, 1)
+	go func() {
+		_, err := s.session.Ping()
+		ping <- err
+	}()
+
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case <-time.After(timeout):
+		return fmt.Errorf("ping timed out")
+	case err := <-ping:
+		return fmt.Errorf("failed to ping session: %w", err)
 	}
 }
 

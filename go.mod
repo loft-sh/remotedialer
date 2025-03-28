@@ -6,7 +6,7 @@ require (
 	github.com/go-logr/logr v1.2.4
 	github.com/gorilla/mux v1.8.0
 	github.com/gorilla/websocket v1.4.1
-	github.com/hashicorp/yamux v0.1.2-0.20221031155914-a8b47c1ff9c4
+	github.com/hashicorp/yamux v0.1.2
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.11.1
 	k8s.io/klog/v2 v2.100.1
