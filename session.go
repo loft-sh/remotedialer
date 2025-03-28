@@ -133,7 +133,10 @@ func (s *Session) ping(ctx context.Context, timeout time.Duration) error {
 	case <-time.After(timeout):
 		return fmt.Errorf("ping timed out")
 	case err := <-ping:
-		return fmt.Errorf("failed to ping session: %w", err)
+		if err != nil {
+			return fmt.Errorf("failed to ping session: %w", err)
+		}
+		return nil
 	}
 }
 
